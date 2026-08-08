@@ -77,9 +77,11 @@ void Error_Handler(void);
 #define UART1_RX_GPIO_Port GPIOA
 #define ERR_LED_Pin GPIO_PIN_15
 #define ERR_LED_GPIO_Port GPIOA
-#define RDY_LED_Pin GPIO_PIN_3
+#define STATUS_LED_Pin GPIO_PIN_3
+#define STATUS_LED_GPIO_Port GPIOB
+#define RDY_LED_Pin GPIO_PIN_4
 #define RDY_LED_GPIO_Port GPIOB
-#define LOCK_Pin GPIO_PIN_4
+#define LOCK_Pin GPIO_PIN_5
 #define LOCK_GPIO_Port GPIOB
 #define I2C_SCL_Pin GPIO_PIN_6
 #define I2C_SCL_GPIO_Port GPIOB
