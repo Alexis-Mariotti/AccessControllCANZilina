@@ -57,6 +57,10 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define XTAL0_Pin GPIO_PIN_0
+#define XTAL0_GPIO_Port GPIOF
+#define XTAL1_Pin GPIO_PIN_1
+#define XTAL1_GPIO_Port GPIOF
 #define USR_SW_Pin GPIO_PIN_0
 #define USR_SW_GPIO_Port GPIOA
 #define PIEZO_Pin GPIO_PIN_1
