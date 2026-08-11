@@ -22,6 +22,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "can_manager.h"
+#include "pn532.h"
+
 
 /* USER CODE END Includes */
 
@@ -50,6 +53,10 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 
+// TODO: change this if you have multiple doors on the same CAN bus, each door should have a unique ID
+uint32_t my_door_id = 0x123; // The unique ID of this door, used as the CAN message ID for access requests
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -66,8 +73,6 @@ static void MX_USART2_UART_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-/* PN532 implementation moved to pn532.c */
-#include "pn532.h"
 
 int main(void)
 {
@@ -85,6 +90,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_CAN_Init();
+  CAN_Manager_Init();
   MX_I2C1_Init();
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
@@ -108,43 +114,52 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  /*
-	   //blink test
-	        HAL_GPIO_WritePin(LOCK_GPIO_Port,
+	  uint8_t uid[10];
+	  uint8_t uid_len = 0;
+
+	  pn532_debug_state = 0;
+
+	  if (PN532_ReadCard(uid, &uid_len))
+	  {
+		  /* Card detected - lock control */
+		  HAL_GPIO_WritePin(LOCK_GPIO_Port,
+				  LOCK_Pin,
+				  GPIO_PIN_SET);
+
+		  HAL_Delay(3000);
+
+		  HAL_GPIO_WritePin(LOCK_GPIO_Port,
+				  LOCK_Pin,
+				  GPIO_PIN_RESET);
+
+		  HAL_Delay(500);
+	  }
+
+	  HAL_Delay(50);
+
+	  // ToDo: remove
+      /* Test sending the access request over CAN */
+      uint8_t uid_can_test[7] = {0xDE, 0xAD, 0xBE, 0xEF, 0x01, 0x02, 0x03};
+      uint8_t result = CAN_SendAccessRequest(my_door_id, REQ_DOOR_SEND, uid_can_test, 7);
+      
+      /* Toggle CTX_LED to indicate CAN transmission attempt */
+      if (result == 1) {
+          HAL_GPIO_WritePin(GPIOA, CTX_LED_Pin, GPIO_PIN_SET);  /* Green: sent OK */
+      } else {
+          HAL_GPIO_WritePin(GPIOA, CTX_LED_Pin, GPIO_PIN_RESET); /* Off: failed */
+      }
+      
+      HAL_GPIO_WritePin(LOCK_GPIO_Port,
                         LOCK_Pin,
                         GPIO_PIN_SET);
-      HAL_Delay(500);
+
+      HAL_Delay(1500);
+
       HAL_GPIO_WritePin(LOCK_GPIO_Port,
                         LOCK_Pin,
                         GPIO_PIN_RESET);
-	   */
 
-
-      uint8_t uid[10];
-      uint8_t uid_len = 0;
-
-      pn532_debug_state = 0;
-
-      if (PN532_ReadCard(uid, &uid_len))
-      {
-          memcpy((void *)pn532_debug_uid, uid, uid_len);
-          pn532_debug_uid_len = uid_len;
-          pn532_debug_state = 4;
-
-          HAL_GPIO_WritePin(LOCK_GPIO_Port,
-                            LOCK_Pin,
-                            GPIO_PIN_SET);
-
-          HAL_Delay(3000);
-
-          HAL_GPIO_WritePin(LOCK_GPIO_Port,
-                            LOCK_Pin,
-                            GPIO_PIN_RESET);
-
-          HAL_Delay(500);
-      }
-
-      HAL_Delay(50);
+      HAL_Delay(100);  /* Send CAN message every 100ms */
   }
   /* USER CODE END 3 */
 }
@@ -207,12 +222,12 @@ static void MX_CAN_Init(void)
   /* USER CODE BEGIN CAN_Init 1 */
 
   /* USER CODE END CAN_Init 1 */
-  hcan.Instance = CAN;
-  hcan.Init.Prescaler = 16;
-  hcan.Init.Mode = CAN_MODE_NORMAL;
-  hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
-  hcan.Init.TimeSeg1 = CAN_BS1_1TQ;
-  hcan.Init.TimeSeg2 = CAN_BS2_1TQ;
+   hcan.Instance = CAN;
+   hcan.Init.Prescaler = 1;
+   hcan.Init.Mode = CAN_MODE_NORMAL;
+   hcan.Init.SyncJumpWidth = CAN_SJW_2TQ;
+   hcan.Init.TimeSeg1 = CAN_BS1_13TQ;
+   hcan.Init.TimeSeg2 = CAN_BS2_2TQ;
   hcan.Init.TimeTriggeredMode = DISABLE;
   hcan.Init.AutoBusOff = DISABLE;
   hcan.Init.AutoWakeUp = DISABLE;

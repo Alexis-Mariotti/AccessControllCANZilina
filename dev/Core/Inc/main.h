@@ -52,6 +52,12 @@ extern "C" {
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
 
+/* Exported peripheral handles (defined in main.c) */
+extern CAN_HandleTypeDef hcan;
+extern I2C_HandleTypeDef hi2c1;
+extern UART_HandleTypeDef huart1;
+extern UART_HandleTypeDef huart2;
+
 /* USER CODE BEGIN EFP */
 
 /* USER CODE END EFP */

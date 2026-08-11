@@ -20,8 +20,6 @@ volatile HAL_StatusTypeDef debug_uart_status = HAL_OK;
 volatile uint32_t           debug_uart_error_code = 0;
 volatile uint8_t            debug_ack_buffer[6] = {0};
 
-static uint8_t pn532_frame[PN532_MAX_FRAME];
-
 static const uint8_t PN532_ACK[] = {0x00,0x00,0xFF,0x00,0xFF,0x00};
 
 /* local debug helpers */
