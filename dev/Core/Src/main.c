@@ -18,7 +18,6 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include <string.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -73,9 +72,15 @@ static void MX_USART2_UART_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+/* USER CODE END 0 */
 
+/**
+  * @brief  The application entry point.
+  * @retval int
+  */
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
   /* USER CODE END 1 */
 
@@ -84,8 +89,16 @@ int main(void)
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
 
+  /* USER CODE BEGIN Init */
+
+  /* USER CODE END Init */
+
   /* Configure the system clock */
   SystemClock_Config();
+
+  /* USER CODE BEGIN SysInit */
+
+  /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
@@ -141,14 +154,14 @@ int main(void)
       /* Test sending the access request over CAN */
       uint8_t uid_can_test[7] = {0xDE, 0xAD, 0xBE, 0xEF, 0x01, 0x02, 0x03};
       uint8_t result = CAN_SendAccessRequest(my_door_id, REQ_DOOR_SEND, uid_can_test, 7);
-      
+
       /* Toggle CTX_LED to indicate CAN transmission attempt */
       if (result == 1) {
           HAL_GPIO_WritePin(GPIOA, CTX_LED_Pin, GPIO_PIN_SET);  /* Green: sent OK */
       } else {
           HAL_GPIO_WritePin(GPIOA, CTX_LED_Pin, GPIO_PIN_RESET); /* Off: failed */
       }
-      
+
       HAL_GPIO_WritePin(LOCK_GPIO_Port,
                         LOCK_Pin,
                         GPIO_PIN_SET);
@@ -160,6 +173,9 @@ int main(void)
                         GPIO_PIN_RESET);
 
       HAL_Delay(100);  /* Send CAN message every 100ms */
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
 }
@@ -222,16 +238,16 @@ static void MX_CAN_Init(void)
   /* USER CODE BEGIN CAN_Init 1 */
 
   /* USER CODE END CAN_Init 1 */
-   hcan.Instance = CAN;
-   hcan.Init.Prescaler = 1;
-   hcan.Init.Mode = CAN_MODE_NORMAL;
-   hcan.Init.SyncJumpWidth = CAN_SJW_2TQ;
-   hcan.Init.TimeSeg1 = CAN_BS1_13TQ;
-   hcan.Init.TimeSeg2 = CAN_BS2_2TQ;
+  hcan.Instance = CAN;
+  hcan.Init.Prescaler = 1;
+  hcan.Init.Mode = CAN_MODE_NORMAL;
+  hcan.Init.SyncJumpWidth = CAN_SJW_1TQ;
+  hcan.Init.TimeSeg1 = CAN_BS1_13TQ;
+  hcan.Init.TimeSeg2 = CAN_BS2_2TQ;
   hcan.Init.TimeTriggeredMode = DISABLE;
   hcan.Init.AutoBusOff = DISABLE;
-  hcan.Init.AutoWakeUp = DISABLE;
-  hcan.Init.AutoRetransmission = DISABLE;
+  hcan.Init.AutoWakeUp = ENABLE;
+  hcan.Init.AutoRetransmission = ENABLE;
   hcan.Init.ReceiveFifoLocked = DISABLE;
   hcan.Init.TransmitFifoPriority = DISABLE;
   if (HAL_CAN_Init(&hcan) != HAL_OK)
@@ -308,7 +324,7 @@ static void MX_USART1_UART_Init(void)
 
   /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 38400;
+  huart1.Init.BaudRate = 115200;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
@@ -343,7 +359,7 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
+  huart2.Init.BaudRate = 38400;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
