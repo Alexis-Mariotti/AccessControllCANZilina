@@ -7,6 +7,28 @@ extern CAN_HandleTypeDef hcan;
 static uint8_t rolling_counter = 0;
 
 /**
+ * @brief Callback function for CAN Rx FIFO0 message reception
+ * This function is called when a CAN message is received on FIFO0
+ * It toggles the LOCK LED to indicate CAN reception
+ */
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan_ptr)
+{
+    CAN_RxHeaderTypeDef RxHeader;
+    uint8_t RxData[8];
+
+    /* Get the CAN message from FIFO0 */
+    if (HAL_CAN_GetRxMessage(hcan_ptr, CAN_RX_FIFO0, &RxHeader, RxData) == HAL_OK)
+    {
+        /* Simple toggle of LOCK LED to indicate CAN message received */
+        /* Do NOT use HAL_Delay() in an interrupt! */
+        HAL_GPIO_TogglePin(LOCK_GPIO_Port, LOCK_Pin);
+        
+        /* Debug: toggle error LED too to show callback was called */
+        HAL_GPIO_TogglePin(ERR_LED_GPIO_Port, ERR_LED_Pin);
+    }
+}
+
+/**
  * @brief Init and start CAN controller
  */
 void CAN_Manager_Init(void)
@@ -32,6 +54,12 @@ void CAN_Manager_Init(void)
     }
 
     if (HAL_CAN_Start(&hcan) != HAL_OK)
+    {
+        Error_Handler();
+    }
+
+    /* Enable CAN Rx FIFO0 message pending interrupt */
+    if (HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK)
     {
         Error_Handler();
     }

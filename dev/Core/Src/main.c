@@ -127,14 +127,26 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  uint8_t uid[10];
-	  uint8_t uid_len = 0;
 
-	  pn532_debug_state = 0;
+	  /*
+	   * Minimal can message test
+	   *
+	  CAN_TxHeaderTypeDef   TxHeader;
+	  uint8_t               TxData[8];
+	  uint32_t              TxMailbox;
 
-	  if (PN532_ReadCard(uid, &uid_len))
+	  TxHeader.IDE = CAN_ID_STD;
+	  TxHeader.StdId = 0x446;
+	  TxHeader.RTR = CAN_RTR_DATA;
+	  TxHeader.DLC = 2;
+
+	  TxData[0] = 50;
+	  TxData[1] = 0xAA;
+
+	  if (HAL_CAN_AddTxMessage(&hcan, &TxHeader, TxData, &TxMailbox) != HAL_OK)
 	  {
-		  /* Card detected - lock control */
+	     Error_Handler ();
+	  }else{
 		  HAL_GPIO_WritePin(LOCK_GPIO_Port,
 				  LOCK_Pin,
 				  GPIO_PIN_SET);
@@ -144,35 +156,33 @@ int main(void)
 		  HAL_GPIO_WritePin(LOCK_GPIO_Port,
 				  LOCK_Pin,
 				  GPIO_PIN_RESET);
+	  }
+	  HAL_Delay(2000);
+	  */
+
+	  uint8_t uid[10];
+	  uint8_t uid_len = 0;
+
+	  pn532_debug_state = 0;
+
+	  if (PN532_ReadCard(uid, &uid_len))
+	  {
+		  /* Card detected - send CAN request */
+		  uint8_t result = CAN_SendAccessRequest(my_door_id, REQ_DOOR_SEND, uid, uid_len);
+
+		  if (result == 1) {
+			  HAL_GPIO_WritePin(GPIOA, CTX_LED_Pin, GPIO_PIN_SET);  /* Indicate CAN sent OK */
+		  } else {
+			  HAL_GPIO_WritePin(GPIOA, CTX_LED_Pin, GPIO_PIN_RESET); /* Off: failed */
+		  }
 
 		  HAL_Delay(500);
 	  }
 
-	  HAL_Delay(50);
+	  HAL_Delay(100);
 
-	  // ToDo: remove
-      /* Test sending the access request over CAN */
-      uint8_t uid_can_test[7] = {0xDE, 0xAD, 0xBE, 0xEF, 0x01, 0x02, 0x03};
-      uint8_t result = CAN_SendAccessRequest(my_door_id, REQ_DOOR_SEND, uid_can_test, 7);
 
-      /* Toggle CTX_LED to indicate CAN transmission attempt */
-      if (result == 1) {
-          HAL_GPIO_WritePin(GPIOA, CTX_LED_Pin, GPIO_PIN_SET);  /* Green: sent OK */
-      } else {
-          HAL_GPIO_WritePin(GPIOA, CTX_LED_Pin, GPIO_PIN_RESET); /* Off: failed */
-      }
 
-      HAL_GPIO_WritePin(LOCK_GPIO_Port,
-                        LOCK_Pin,
-                        GPIO_PIN_SET);
-
-      HAL_Delay(1500);
-
-      HAL_GPIO_WritePin(LOCK_GPIO_Port,
-                        LOCK_Pin,
-                        GPIO_PIN_RESET);
-
-      HAL_Delay(100);  /* Send CAN message every 100ms */
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
