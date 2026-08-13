@@ -11,6 +11,8 @@ typedef enum {
     REQ_NOT_OK    = 0x03  // 11 (NOT_OK)
 } CAN_RequestType_t;
 
+extern volatile uint8_t open_door_flag;
+extern volatile uint8_t not_ok_flag;
 
 void CAN_Manager_Init(void);
 uint8_t CAN_SendAccessRequest(uint32_t door_id, CAN_RequestType_t req_type, uint8_t *uid, uint8_t uid_len);

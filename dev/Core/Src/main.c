@@ -66,7 +66,7 @@ static void MX_I2C1_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
-
+void open_the_door(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -103,14 +103,16 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_CAN_Init();
-  CAN_Manager_Init();
   MX_I2C1_Init();
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
+  CAN_Manager_Init();
+
   HAL_Delay(1000);
 
+  // reset the lock at startup
   HAL_GPIO_WritePin(LOCK_GPIO_Port, LOCK_Pin, GPIO_PIN_RESET);
 
   pn532_debug_state = 0;
@@ -128,37 +130,47 @@ int main(void)
   while (1)
   {
 
+	  // if a CAN message has been received and the door should be opened, we trigger the opening sequence
+	  if (open_door_flag)
+	  {
+		  // open the door and reset the flag
+		  open_door_flag = 0;
+		  open_the_door();
+	  }
+	  // if a CAN message has been received and the access is denied, we trigger an error led
+	  if (not_ok_flag)
+	  {
+		  // access denied, we can trigger an error led or buzzer
+		  not_ok_flag = 0;
+		  HAL_GPIO_WritePin(ERR_LED_GPIO_Port, ERR_LED_Pin, GPIO_PIN_SET);
+		  HAL_Delay(3000);
+		  HAL_GPIO_WritePin(ERR_LED_GPIO_Port, ERR_LED_Pin, GPIO_PIN_RESET);
+	  }
+
+	  HAL_Delay(50);
+
 	  /*
 	   * Minimal can message test
 	   *
-	  CAN_TxHeaderTypeDef   TxHeader;
-	  uint8_t               TxData[8];
-	  uint32_t              TxMailbox;
+	  // Création d'un faux UID (mock) de 4 octets pour le test
+	  uint8_t mock_uid[7] = {0xDE, 0xAD, 0xBE, 0xEF, 0x01, 0x02, 0x03};
+	  uint8_t mock_uid_len = 4;
 
-	  TxHeader.IDE = CAN_ID_STD;
-	  TxHeader.StdId = 0x446;
-	  TxHeader.RTR = CAN_RTR_DATA;
-	  TxHeader.DLC = 2;
+	  // Envoi de la trame CAN formatée avec votre ID de porte (ex: 0x123)
+	  uint8_t result = CAN_SendAccessRequest(my_door_id, REQ_DOOR_SEND, mock_uid, mock_uid_len);
 
-	  TxData[0] = 50;
-	  TxData[1] = 0xAA;
-
-	  if (HAL_CAN_AddTxMessage(&hcan, &TxHeader, TxData, &TxMailbox) != HAL_OK)
+	  if (result != 1)
 	  {
-	     Error_Handler ();
-	  }else{
-		  HAL_GPIO_WritePin(LOCK_GPIO_Port,
-				  LOCK_Pin,
-				  GPIO_PIN_SET);
-
+		  // error pin if can send fail
+		  HAL_GPIO_WritePin(ERR_LED_GPIO_Port, ERR_LED_Pin, GPIO_PIN_SET);
+		  uint32_t err = HAL_CAN_GetError(&hcan);
 		  HAL_Delay(3000);
-
-		  HAL_GPIO_WritePin(LOCK_GPIO_Port,
-				  LOCK_Pin,
-				  GPIO_PIN_RESET);
+		  HAL_GPIO_WritePin(ERR_LED_GPIO_Port, ERR_LED_Pin, GPIO_PIN_RESET);
 	  }
 	  HAL_Delay(2000);
-	  */
+	   */
+
+	  /**
 
 	  uint8_t uid[10];
 	  uint8_t uid_len = 0;
@@ -167,19 +179,21 @@ int main(void)
 
 	  if (PN532_ReadCard(uid, &uid_len))
 	  {
-		  /* Card detected - send CAN request */
+		  // Card detected - send CAN request
 		  uint8_t result = CAN_SendAccessRequest(my_door_id, REQ_DOOR_SEND, uid, uid_len);
 
 		  if (result == 1) {
-			  HAL_GPIO_WritePin(GPIOA, CTX_LED_Pin, GPIO_PIN_SET);  /* Indicate CAN sent OK */
+			  HAL_GPIO_WritePin(GPIOA, CTX_LED_Pin, GPIO_PIN_SET);  // Indicate CAN sent OK
 		  } else {
-			  HAL_GPIO_WritePin(GPIOA, CTX_LED_Pin, GPIO_PIN_RESET); /* Off: failed */
+			  HAL_GPIO_WritePin(GPIOA, CTX_LED_Pin, GPIO_PIN_RESET); // Off: failed
 		  }
 
 		  HAL_Delay(500);
 	  }
 
 	  HAL_Delay(100);
+
+	  */
 
 
 
@@ -446,6 +460,37 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+// A simple delay function for microseconds using a busy-wait loop
+static void delay_us(uint32_t us)
+{
+	us = us * 1;
+	while (us--) {
+		__NOP();
+	}
+}
+
+// Function to open the door: activate the lock, sound the buzzer, and then deactivate the lock
+void open_the_door(void)
+{
+    // toggle the lock pin to open the door
+    HAL_GPIO_WritePin(LOCK_GPIO_Port, LOCK_Pin, GPIO_PIN_SET);
+
+    // activate the buzzer for 3 seconds at 2 kHz
+    uint32_t start_tick = HAL_GetTick();
+
+    while ((HAL_GetTick() - start_tick) < 3000)
+    {
+        HAL_GPIO_TogglePin(PIEZO_GPIO_Port, PIEZO_Pin);
+        delay_us(250); // 250 µs High + 250 µs Low = 500 µs période = 2 kHz
+    }
+
+    // stop the buzzer
+    HAL_GPIO_WritePin(PIEZO_GPIO_Port, PIEZO_Pin, GPIO_PIN_RESET);
+
+    // deactivate the lock after 3 seconds
+    HAL_GPIO_WritePin(LOCK_GPIO_Port, LOCK_Pin, GPIO_PIN_RESET);
+}
 
 /* USER CODE END 4 */
 

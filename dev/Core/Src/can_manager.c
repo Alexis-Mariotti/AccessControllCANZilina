@@ -6,6 +6,29 @@ extern CAN_HandleTypeDef hcan;
 // Global variable to maintain the rolling counter across CAN messages ( 6 bits)
 static uint8_t rolling_counter = 0;
 
+
+// Flag to indicate that the door should be opened, set by the CAN Rx callback
+volatile uint8_t open_door_flag = 0;
+// flag to indicate that the access request was not OK, set by the CAN Rx callback
+volatile uint8_t not_ok_flag = 0;
+
+
+// the unique ID of this door, declared in the main.c file
+extern uint32_t my_door_id;
+
+// Define the request types for access control
+#define REQ_UNDEFINED 0x00
+#define REQ_DOOR      0x01
+#define REQ_OK        0x02
+#define REQ_NOT_OK    0x03
+
+// Helper function to extract the request type from the payload
+uint8_t get_request_type(uint8_t *payload)
+{
+    // On isole les 2 premiers bits avec un masque (0x03 = 0000 0011 en binaire)
+	return (payload[0] & 0x03);
+}
+
 /**
  * @brief Callback function for CAN Rx FIFO0 message reception
  * This function is called when a CAN message is received on FIFO0
@@ -19,12 +42,23 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan_ptr)
     /* Get the CAN message from FIFO0 */
     if (HAL_CAN_GetRxMessage(hcan_ptr, CAN_RX_FIFO0, &RxHeader, RxData) == HAL_OK)
     {
-        /* Simple toggle of LOCK LED to indicate CAN message received */
-        /* Do NOT use HAL_Delay() in an interrupt! */
-        HAL_GPIO_TogglePin(LOCK_GPIO_Port, LOCK_Pin);
-        
-        /* Debug: toggle error LED too to show callback was called */
-        HAL_GPIO_TogglePin(ERR_LED_GPIO_Port, ERR_LED_Pin);
+    	// check if the received message is for this door matching the id
+    	if ((RxHeader.IDE == CAN_ID_STD) &&
+    	                (RxHeader.StdId == my_door_id))
+    	{
+			// Extract the request type from the received payload
+    		uint8_t req_type = get_request_type(RxData);
+
+    		// If the request type is REQ_OK, set the flag to open the door
+    		if (req_type == REQ_OK){
+            	open_door_flag =1; // Set the flag to open the door
+    		}
+    		//If the request is not ok, set the not_ok flag
+    		else if (req_type == REQ_NOT_OK){
+    			not_ok_flag = 1; // Set the flag to indicate access denied
+			}
+
+    	}
     }
 }
 
@@ -56,6 +90,9 @@ void CAN_Manager_Init(void)
     if (HAL_CAN_Start(&hcan) != HAL_OK)
     {
         Error_Handler();
+		  HAL_GPIO_WritePin(LOCK_GPIO_Port, LOCK_Pin, GPIO_PIN_SET);
+		  HAL_Delay(10000);
+		  HAL_GPIO_WritePin(LOCK_GPIO_Port, LOCK_Pin, GPIO_PIN_RESET);
     }
 
     /* Enable CAN Rx FIFO0 message pending interrupt */
