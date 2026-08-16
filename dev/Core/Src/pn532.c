@@ -287,30 +287,72 @@ static uint8_t PN532_ReadFrame(uint8_t *data,
 
 static void PN532_Wakeup(void)
 {
+    // Séquence standard de réveil pour le PN532 en UART
+    // Des octets de synchronisation (0x55) suivis d'une trame vide ou d'un SAMConfiguration
     uint8_t wakeup_packet[] = {
         0x55, 0x55, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0xFF, 0x03, 0xFD, 0xD4, 0x14, 0x01, 0x17, 0x00
     };
 
+    // Laisser le temps au module de démarrer après un reset physique
+    HAL_Delay(50);
+
     HAL_UART_Transmit(&huart2, wakeup_packet, sizeof(wakeup_packet), 500);
     Debug_PrintHex("PN532 WAKEUP", (uint8_t *)wakeup_packet, sizeof(wakeup_packet));
+
+    // IMPORTANT : Le PN532 a besoin de 50ms à 100ms pour traiter le réveil
+    // avant d'être capable de renvoyer un ACK sur la commande suivante.
     HAL_Delay(100);
+}
+
+#define PN532_WAKEUP (0x55)
+
+// Remplacez PN532_RST_GPIO_Port et PN532_RST_Pin par vos définitions CubeMX
+void PN532_Begin(UART_HandleTypeDef *huart)
+{
+    // 1. Séquence de Reset matériel (Hardware Reset)
+    HAL_GPIO_WritePin(PN532_RST_GPIO_Port, PN532_RST_Pin, GPIO_PIN_SET);
+    HAL_Delay(10);
+    HAL_GPIO_WritePin(PN532_RST_GPIO_Port, PN532_RST_Pin, GPIO_PIN_RESET);
+    HAL_Delay(400);
+    HAL_GPIO_WritePin(PN532_RST_GPIO_Port, PN532_RST_Pin, GPIO_PIN_SET);
+    HAL_Delay(10); // Pause indispensable post-reset
+
+    // 2. Envoi de la trame de réveil (20 octets à 0x55)
+    uint8_t wakeup_buffer[20];
+    memset(wakeup_buffer, PN532_WAKEUP, sizeof(wakeup_buffer));
+
+    HAL_UART_Transmit(huart, wakeup_buffer, sizeof(wakeup_buffer), 100);
+
+    // Pause pour laisser le PN532 stabiliser son horloge interne
+    HAL_Delay(10);
 }
 
 uint8_t PN532_Init(void)
 {
-    PN532_Wakeup();
+    // 1. Réveiller le module
+    //PN532_Wakeup();
+	PN532_Begin(&huart2);
 
+    // Vider le buffer de réception pour éliminer les échos ou parasites éventuels
+    __HAL_UART_CLEAR_OREFLAG(&huart2);
+    uint8_t dummy;
+    while (__HAL_UART_GET_FLAG(&huart2, UART_FLAG_RXNE) != RESET) {
+        HAL_UART_Receive(&huart2, &dummy, 1, 10);
+    }
+
+    // 2. Commande GetFirmwareVersion (plus classique et plus robuste que SAMConfiguration pour tester l'init)
+    // Frame: D4 02 (GetFirmwareVersion)
     uint8_t cmd[] = {
-        0x00, 0x00, 0xFF,
-        0x02, 0xFE,
-        0xD4, 0x02,
-        0x2A,
-        0x00
+        0x00, 0x00, 0xFF, // Préambule
+        0x02, 0xFE,       // LEN (2) + LCS (FE)
+        0xD4, 0x02,       // TFI + Code commande (GetFirmwareVersion)
+        0x2A,             // DCS (Checksum)
+        0x00              // Postambule
     };
 
-    __HAL_UART_CLEAR_OREFLAG(&huart2);
+    Debug_PrintStr("PN532 Init: Sending GetFirmwareVersion...\r\n");
 
     if (HAL_UART_Transmit(&huart2, cmd, sizeof(cmd), 500) != HAL_OK)
     {
@@ -318,17 +360,32 @@ uint8_t PN532_Init(void)
         return 0;
     }
 
-    uint8_t dummy_ack[6];
-    if (HAL_UART_Receive(&huart2, dummy_ack, 6, 500) != HAL_OK)
+    // 3. Lire l'ACK renvoyé par le PN532 (0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00)
+    uint8_t ack[6];
+    if (HAL_UART_Receive(&huart2, ack, 6, 1000) != HAL_OK) // Augmenté à 1000ms pour être sûr
     {
         Debug_PrintStr("PN532 Init: HAL_UART_Receive ACK failed\r\n");
-        Debug_PrintHex("PN532 ACK got", dummy_ack, 6);
+        Debug_PrintHex("PN532 ACK got", ack, 6);
         return 0;
     }
 
+    // Valider que c'est bien l'ACK
+    const uint8_t PN532_ACK_LOCAL[] = {0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00};
+    if (memcmp(ack, PN532_ACK_LOCAL, 6) != 0)
+    {
+        Debug_PrintStr("PN532 Init: Invalid ACK received\r\n");
+        Debug_PrintHex("PN532 ACK got", ack, 6);
+        return 0;
+    }
+
+    // (Optionnel mais recommandé) Lire la réponse de la commande GetFirmwareVersion pour finir de vider la fifo
+    uint8_t fw_response[32];
+    uint8_t fw_len;
+    PN532_ReadFrame(fw_response, &fw_len, 1000);
+
+    Debug_PrintStr("PN532 Init Success !\r\n");
     return 1;
 }
-
 uint8_t PN532_ReadCard(uint8_t *uid,
                               uint8_t *uid_len)
 {

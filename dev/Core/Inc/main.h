@@ -93,6 +93,8 @@ void Error_Handler(void);
 #define I2C_SDA_GPIO_Port GPIOB
 #define BOOT_SEL_Pin GPIO_PIN_8
 #define BOOT_SEL_GPIO_Port GPIOB
+#define PN532_RST_Pin GPIO_PIN_7
+#define PN532_RST_GPIO_Port GPIOA
 
 /* USER CODE BEGIN Private defines */
 

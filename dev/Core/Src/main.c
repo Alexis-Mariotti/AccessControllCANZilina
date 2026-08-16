@@ -383,7 +383,7 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 38400;
+  huart2.Init.BaudRate = 115200;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
@@ -424,6 +424,7 @@ static void MX_GPIO_Init(void)
                           |ERR_LED_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, PN532_RST_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(GPIOB, STATUS_LED_Pin|RDY_LED_Pin|LOCK_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : USR_SW_Pin */
@@ -433,9 +434,9 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(USR_SW_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PIEZO_Pin CTX_LED_Pin CRX_LED_Pin SYS_LED_Pin
-                           ERR_LED_Pin */
+                           ERR_LED_Pin PN532_RST_Pin */
   GPIO_InitStruct.Pin = PIEZO_Pin|CTX_LED_Pin|CRX_LED_Pin|SYS_LED_Pin
-                          |ERR_LED_Pin;
+                          |ERR_LED_Pin|PN532_RST_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
