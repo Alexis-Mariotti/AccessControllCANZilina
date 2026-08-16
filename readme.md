@@ -16,6 +16,7 @@ If you don't want to use this software you can also use commandline tools.
 ### create the can listener
 
 `sudo ip link set can0 type can bitrate 500000`
+
 `sudo ip link set can0 up`
 
 We use the 500 kb/s bit rate for this project.
@@ -31,6 +32,19 @@ Use the command *cansend* like that
 123 is the ID of CAN and 42 is the payload.
 
 `cansend can0 123#41` --> REQ_DOOR
+
 `cansend can0 123#42` --> REQ_OK
+
 `cansend can0 123#43` --> REQ_NOT_OK
+
+## Server side simulation
+
+You can simulate the server side with your pc by using the python script
+
+Don't forget to install the python-can library with `pip install python-can`
+
+Then run the script with `python3 server_simulation.py` and don't forget to initialize the can interface 
+
+example of sample request to open the door:
+`cansend can0 123#0101020304050607`
 
