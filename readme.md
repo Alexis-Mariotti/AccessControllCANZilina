@@ -15,6 +15,8 @@ If you don't want to use this software you can also use commandline tools.
 
 ### create the can listener
 
+*Plug the PEAK usb before ussing these commands*
+
 `sudo ip link set can0 type can bitrate 500000`
 
 `sudo ip link set can0 up`

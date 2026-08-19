@@ -120,6 +120,9 @@ int main(void)
 	  HAL_GPIO_WritePin(ERR_LED_GPIO_Port, ERR_LED_Pin, GPIO_PIN_SET);
   }
 
+  // ToDO : remove after the demo
+  uint8_t demo_flag = 0;
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -145,6 +148,32 @@ int main(void)
 	  }
 
 	  HAL_Delay(50);
+
+	  // ToDO : remove after the demo
+	  /* CODE USED ONLY FOR THE DEMO BECAUSE PN532 DONT WAKE UP */
+	  /* Alternate sending requests that will be validated by the server side and requests that will be denieded  */
+
+	  HAL_GPIO_WritePin(ERR_LED_GPIO_Port, ERR_LED_Pin, GPIO_PIN_RESET);
+
+	  uint8_t mock_uid_ok[7] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
+	  uint8_t mock_uid_ok_len = 7;
+
+	  uint8_t mock_uid_notok[7] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0xAA};
+	  uint8_t mock_uid_notok_len = 7;
+
+	  if (demo_flag == 0 ){
+		  // send a request that will be validated
+		  CAN_SendAccessRequest(my_door_id, REQ_DOOR_SEND, mock_uid_ok, mock_uid_ok_len);
+		  demo_flag = 1;
+	  } else{
+		  demo_flag = 0;
+		  // send a request that will be denied
+		  CAN_SendAccessRequest(my_door_id, REQ_DOOR_SEND, mock_uid_notok, mock_uid_notok_len);
+	  }
+	  HAL_Delay(5000);
+	  /* End of demo code to remove */
+
+
 
 
 
