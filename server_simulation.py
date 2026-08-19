@@ -13,6 +13,7 @@ MSG_TYPE_NOT_OK    = 0x03  # 11: NOT_OK response
 # ---AUTHORIZED CARD DIRECTORY (Door IDs in Hexadecimal) ---
 # The keys are the isic id and the values are the autorized doors ids for this card
 # it's like a withe list
+# simulate a LDAP service
 CARD_DIRECTORY = {
     "01020304050607": [0x123, 0x00A, 0x1F0],
     "11223344556677": [0x123],
@@ -34,7 +35,11 @@ def start_can_server():
 
         door_id = msg.arbitration_id       # ID CAN (ex: 0x123)
         first_byte = msg.data[0]
-        msg_type = first_byte & MSG_TYPE_MASK
+
+        # Extraction of bits [7:6] and right shift
+        msg_type = (first_byte >> 6) & MSG_TYPE_MASK
+
+        print(f"door id : {door_id:03X}, msg_type : {msg_type}, msg : {msg.data}")
 
         if msg_type == MSG_TYPE_REQUEST:
             isic_bytes = msg.data[1:8]
