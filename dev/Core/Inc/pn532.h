@@ -6,6 +6,8 @@
 #include <stdint.h>
 
 #define PN532_MAX_FRAME 64
+// Wakeup frame for PN532 (20 bytes of 0x55)
+#define PN532_WAKEUP_FRAME (0x55)
 
 /* Public API */
 uint8_t PN532_Init(void);

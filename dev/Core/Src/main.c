@@ -115,9 +115,6 @@ int main(void)
   // reset the lock at startup
   HAL_GPIO_WritePin(LOCK_GPIO_Port, LOCK_Pin, GPIO_PIN_RESET);
 
-  pn532_debug_state = 0;
-  pn532_debug_errors =0;
-
   if (!PN532_Init()) {
 	  // error led if init fail
 	  HAL_GPIO_WritePin(ERR_LED_GPIO_Port, ERR_LED_Pin, GPIO_PIN_SET);
@@ -148,52 +145,6 @@ int main(void)
 	  }
 
 	  HAL_Delay(50);
-
-	  /*
-	   * Minimal can message test
-	   *
-	  // Création d'un faux UID (mock) de 4 octets pour le test
-	  uint8_t mock_uid[7] = {0xDE, 0xAD, 0xBE, 0xEF, 0x01, 0x02, 0x03};
-	  uint8_t mock_uid_len = 4;
-
-	  // Envoi de la trame CAN formatée avec votre ID de porte (ex: 0x123)
-	  uint8_t result = CAN_SendAccessRequest(my_door_id, REQ_DOOR_SEND, mock_uid, mock_uid_len);
-
-	  if (result != 1)
-	  {
-		  // error pin if can send fail
-		  HAL_GPIO_WritePin(ERR_LED_GPIO_Port, ERR_LED_Pin, GPIO_PIN_SET);
-		  uint32_t err = HAL_CAN_GetError(&hcan);
-		  HAL_Delay(3000);
-		  HAL_GPIO_WritePin(ERR_LED_GPIO_Port, ERR_LED_Pin, GPIO_PIN_RESET);
-	  }
-	  HAL_Delay(2000);
-	   */
-
-	  /**
-
-	  uint8_t uid[10];
-	  uint8_t uid_len = 0;
-
-	  pn532_debug_state = 0;
-
-	  if (PN532_ReadCard(uid, &uid_len))
-	  {
-		  // Card detected - send CAN request
-		  uint8_t result = CAN_SendAccessRequest(my_door_id, REQ_DOOR_SEND, uid, uid_len);
-
-		  if (result == 1) {
-			  HAL_GPIO_WritePin(GPIOA, CTX_LED_Pin, GPIO_PIN_SET);  // Indicate CAN sent OK
-		  } else {
-			  HAL_GPIO_WritePin(GPIOA, CTX_LED_Pin, GPIO_PIN_RESET); // Off: failed
-		  }
-
-		  HAL_Delay(500);
-	  }
-
-	  HAL_Delay(100);
-
-	  */
 
 
 

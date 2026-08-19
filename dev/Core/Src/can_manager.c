@@ -25,7 +25,7 @@ extern uint32_t my_door_id;
 // Helper function to extract the request type from the payload
 uint8_t get_request_type(uint8_t *payload)
 {
-    // On isole les 2 premiers bits avec un masque (0x03 = 0000 0011 en binaire)
+    // Isolate the request type from the first byte of the payload (bits [0:1])
 	return (payload[0] & 0x03);
 }
 
